@@ -50,9 +50,9 @@ then
 fi
 
 # Clean any previous build artifacts and compile the writer utility
-echo "Cleaning and compiling the writer utility"
-make clean
-make
+#echo "Cleaning and compiling the writer utility"
+#make clean
+#make
 
 for i in $( seq 1 $NUMFILES)
 do
