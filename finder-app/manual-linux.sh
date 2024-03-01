@@ -5,7 +5,7 @@
 set -e
 set -u
 
-OUTDIR=/home/abdul/Desktop/repos/assignment-1-asabbagh4/kernel/
+OUTDIR=/home/abdul/Desktop/repos/kernel
 KERNEL_REPO=git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
 KERNEL_VERSION=v5.1.10
 BUSYBOX_VERSION=1_33_1
@@ -22,8 +22,6 @@ else
 	OUTDIR=$1
 	echo "Using passed directory ${OUTDIR} for output"
 fi
-
-mkdir -p ${OUTDIR}
 
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/linux-stable" ]; then
@@ -44,11 +42,11 @@ fi
 
 echo "Adding the Image in outdir"
 
-if [ ! -d "${OUTDIR}/Image" ]; then
-    mkdir -p ${OUTDIR}/Image
-fi
+#if [ ! -d "${OUTDIR}/Image" ]; then
+#    mkdir -p ${OUTDIR}/Image
+#fi
 
-cp ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}/Image
+cp ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}/
 
 
 echo "Creating the staging directory for the root filesystem"
@@ -75,7 +73,7 @@ git clone git://busybox.net/busybox.git
     git checkout ${BUSYBOX_VERSION}
     # TODO:  Configure busybox
     make distclean
-    make deconfig
+    make defconfig
 else
     cd busybox
 fi
@@ -85,6 +83,7 @@ make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
 make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} CONFIG_PREFIX=${OUTDIR}/rootfs/ install
 
 # TODO: Add library dependencies to rootfs
+cd ${OUTDIR}/rootfs
 echo "Library dependencies"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a bin/busybox | grep "Shared library"
@@ -95,11 +94,13 @@ sudo mknod -m 666 dev/null c 1 3
 sudo mknod -m 666 dev/console c 5 1
 
 # TODO: Clean and build the writer utility
+cd ${FINDER_APP_DIR}
 ${CROSS_COMPILE}gcc -o writer writer.c
-cp writer rootfs/home/
+cp writer ${OUTDIR}/rootfs/home/
 
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
+cd ${OUTDIR}
 cp ${FINDER_APP_DIR}/finder.sh rootfs/home/
 cp ${FINDER_APP_DIR}/conf/username.txt rootfs/home/
 cp ${FINDER_APP_DIR}/conf/assignment.txt rootfs/home/
@@ -110,7 +111,7 @@ cp ${FINDER_APP_DIR}/autorun-qemu.sh rootfs/home/
 sudo chown -R root:root *
 
 # TODO: Create initramfs.cpio.gz
-cd rootfs
+cd ${OUTDIR}/rootfs
 find . | cpio -H newc -ov --owner root:root > ../initramfs.cpio
 cd ..
 gzip initramfs.cpio
