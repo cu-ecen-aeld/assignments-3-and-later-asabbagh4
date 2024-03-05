@@ -7,7 +7,7 @@ set -e
 OUTDIR=$1
 
 if [ -z "${OUTDIR}" ]; then
-    OUTDIR=/home/abdul/Desktop/repos/kernel
+    OUTDIR=/tmp/aeld
     echo "No outdir specified, using ${OUTDIR}"
 fi
 
