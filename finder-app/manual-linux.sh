@@ -112,9 +112,13 @@ cp writer ${OUTDIR}/rootfs/home/
 # TODO: Copy the finder related scripts and executables to the /home directory
 # on the target rootfs
 cd ${OUTDIR}
+mkdir -p rootfs/home/conf
+mkdir -p rootfs/conf
 cp ${FINDER_APP_DIR}/finder.sh rootfs/home/
-cp ${FINDER_APP_DIR}/conf/username.txt rootfs/home/
-cp ${FINDER_APP_DIR}/conf/assignment.txt rootfs/home/
+cp ${FINDER_APP_DIR}/conf/username.txt rootfs/home/conf/
+cp ${FINDER_APP_DIR}/conf/assignment.txt rootfs/home/conf/
+cp ${FINDER_APP_DIR}/conf/username.txt rootfs/conf/
+cp ${FINDER_APP_DIR}/conf/assignment.txt rootfs/conf/
 sed 's|../conf/assignment.txt|conf/assignment.txt|' ${FINDER_APP_DIR}/finder-test.sh > rootfs/home/finder-test.sh
 cp ${FINDER_APP_DIR}/autorun-qemu.sh rootfs/home/
 
