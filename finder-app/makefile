@@ -3,11 +3,14 @@ CFLAGS = -Wall
 TARGET = writer
 OBJ = writer.o
 
-	CROSS_COMPILE = 
+CROSS_COMPILER_PREFIX = aarch64-none-linux-gnu-
 # Check if CROSS_COMPILE is set, otherwise use default compiler
-ifdef CROSS_COMPILE
-	CC = $(CROSS_COMPILE)gcc
+ifdef CROSS_COMPILER_PREFIX
+	CC = $(CROSS_COMPILER_PREFIX)gcc
 endif
+
+#all
+all: $(TARGET)
 
 # Default target
 $(TARGET): $(OBJ)
@@ -23,4 +26,5 @@ clean:
 
 # Cross-compilation target
 cross:
-	make CROSS_COMPILE=aarch64-none-linux-gnu-
+	make CROSS_COMPILER_PREFIX=aarch64-none-linux-gnu- CC=$(CC) $(TARGET) 
+
