@@ -1,0 +1,20 @@
+#!/bin/sh
+APP_NAME="aesdsocket"
+DEST_PATH="/usr/bin"
+
+case "$1" in
+  start)
+    echo "Starting $APP_NAME"
+    start-stop-daemon -S -n $(APP_NAME) $(DEST_PATH)/$(APP_NAME) -- -d
+    ;;
+  stop)
+    echo "Stopping $APP_NAME"
+    start-stop-daemon -K -n $(APP_NAME)
+    ;;
+  *)
+    echo "Usage: $0 {start|stop}"
+    exit 1
+    ;;
+esac
+
+exit 0
