@@ -1,14 +1,12 @@
 #!/bin/sh
-APP_NAME="aesdsocket"
-DEST_PATH="/usr/bin"
 
 case "$1" in
   start)
-    echo "Starting $APP_NAME"
-    start-stop-daemon -S -n $(APP_NAME) $(DEST_PATH)/$(APP_NAME) -- -d
+    echo "Starting aesdsocket now"
+    start-stop-daemon -S -n aesdsocket -a /usr/bin/aesdsocket -- -d
     ;;
   stop)
-    echo "Stopping $APP_NAME"
+    echo "Stopping $(APP_NAME)"
     start-stop-daemon -K -n $(APP_NAME)
     ;;
   *)
