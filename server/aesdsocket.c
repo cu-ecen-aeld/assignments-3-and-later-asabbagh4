@@ -10,15 +10,57 @@
 #include <syslog.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <pthread.h> 
 
 #define PORT "9000"
 #define DATA_FILE "/var/tmp/aesdsocketdata"
 
-volatile sig_atomic_t signal_received = 0; // Flag for signal handling
+volatile sig_atomic_t signal_received = 0; 
 
 void signal_handler(int sig) {
     signal_received = 1;
     syslog(LOG_INFO, "Caught signal, exiting");
+}
+
+// Function to handle a single client's communication
+void *handle_client(void *client_socket) {
+    int client_fd = *(int *)client_socket;
+    free(client_socket); 
+
+    int filedata = open(DATA_FILE, O_WRONLY | O_CREAT | O_APPEND, 0666);
+    if (filedata < 0) {
+        perror("open failed");
+        close(client_fd);
+        pthread_exit(NULL); 
+    }
+
+    char buffer[1000];
+    int bytes_read;
+
+    while ((bytes_read = recv(client_fd, buffer, sizeof(buffer), 0)) > 0) { 
+        write(filedata, buffer, bytes_read);
+        if (strchr(buffer, '\n') != NULL) {
+            break;
+        }
+    } 
+    close(filedata);
+    memset(buffer, 0, sizeof(buffer));
+
+    filedata = open(DATA_FILE, O_RDONLY, 0666);
+    if (filedata < 0) {
+        perror("open failed");
+        close(client_fd);
+        pthread_exit(NULL); 
+    }
+
+    while ((bytes_read = read(filedata, buffer, sizeof(buffer))) > 0) {
+        send(client_fd, buffer, bytes_read, 0);
+    }
+
+    close(filedata);
+    shutdown(client_fd, SHUT_RDWR);
+    close(client_fd);
+    pthread_exit(NULL); 
 }
 
 int main(int argc, char *argv[]) {
@@ -38,13 +80,11 @@ int main(int argc, char *argv[]) {
         } else if (pid > 0) {
             exit(0); // Exit parent process
         }
-
     }
 
     // Open syslog
     openlog("aesdsocket", LOG_PID, LOG_USER);
 
-    //struct to accept connection
     struct sockaddr peer;
     socklen_t peersize = sizeof(peer);
     memset(&peer, 0, peersize);
@@ -63,7 +103,6 @@ int main(int argc, char *argv[]) {
 
     int ret = getaddrinfo(NULL, PORT, &hints, &serverinfo);
     if (ret != 0) {
-        //syslog(LOG_ERR, "couldn't get addressinfo", ret);
         exit(1);
     }
 
@@ -94,14 +133,12 @@ int main(int argc, char *argv[]) {
     memset(&signalaction, 0, sizeof(struct sigaction));
     signalaction.sa_handler = signal_handler; 
     int retvalsig = sigaction(SIGINT, &signalaction, NULL);
-    if (retvalsig != 0) 
-    {
+    if (retvalsig != 0) {
         syslog(LOG_ERR, "SIGINT Signal error %d", retvalsig);
         exit(1);
     }
     retvalsig = sigaction(SIGTERM, &signalaction, NULL);
-    if (retvalsig != 0) 
-    {
+    if (retvalsig != 0) {
         syslog(LOG_ERR, "SIGTERM Signal error %d", retvalsig);
         exit(1);
     }
@@ -109,55 +146,23 @@ int main(int argc, char *argv[]) {
     syslog(LOG_INFO, "Signal Handling set up complete.");
     printf("Signal handling set up.\n");
 
-    while (signal_received == 0) 
-    {
+    while (signal_received == 0) {
         client_fd = accept(server_fd, &peer, &peersize);
         if (client_fd < 0) {
             perror("accept failed");
             continue;
         }
 
-        //syslog(LOG_INFO, "Accepted connection from %u", peer.sa_data);
+        pthread_t thread_id;
+        int *client_socket_ptr = malloc(sizeof(int)); 
+        *client_socket_ptr = client_fd;
 
-        // Handle data reception and transmission
-        int filedata = open(DATA_FILE, O_WRONLY | O_CREAT | O_APPEND, 0666);
-        if (filedata < 0) {
-            perror("open failed");
-            close(client_fd);
+        if (pthread_create(&thread_id, NULL, handle_client, client_socket_ptr) != 0) {
+            perror("pthread_create failed");
+            free(client_socket_ptr); 
             continue; 
         }
-        //receive data
-        char buffer[1000];
-        int bytes_read;
-        while ((bytes_read = recv(client_fd, buffer, sizeof(buffer), 0)) > 0) 
-        { 
-            write(filedata, buffer, bytes_read);
-            if (strchr(buffer, '\n') != NULL)
-            {
-                break;
-            }
-        } 
-        close(filedata);
-        memset(buffer, 0, sizeof(buffer));
-        //send data
-        filedata = open(DATA_FILE, O_RDONLY, 0666);
-        if (filedata < 0) 
-        {
-            perror("open failed");
-            close(client_fd);
-            continue; 
-        }
-        while ((bytes_read = read(filedata, buffer, sizeof(buffer))) > 0)
-        {
-            send(client_fd, buffer, bytes_read, 0);
-        }
-        close(filedata);
-        shutdown(client_fd, SHUT_RDWR);
-        close(client_fd);
-        memset(buffer, 0, sizeof(buffer));
-        
-        //syslog(LOG_INFO, "Closed connection from %u", peer.sa_data);
-    } 
+    }
 
     // Cleanup 
     close(server_fd);
