@@ -34,6 +34,10 @@ void *handle_client(void *client_socket) {
         pthread_exit(NULL); 
     }
 
+    // Set the socket to non-blocking
+    int flags = fcntl(client_fd, F_GETFL, 0);
+    fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+
     char buffer[1000];
     int bytes_read;
 
