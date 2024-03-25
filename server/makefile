@@ -15,7 +15,7 @@ aesdsocket: aesdsocket.o
 	$(COMPILE_COMMAND) aesdsocket.o -o aesdsocket
 
 aesdsocket.o: aesdsocket.c
-	$(COMPILE_COMMAND) -c aesdsocket.c -o aesdsocket.o
+	$(COMPILE_COMMAND) -c aesdsocket.c -o aesdsocket.o -lpthread
 
 clean:
 	rm -f aesdsocket aesdsocket.o
