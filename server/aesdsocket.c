@@ -146,12 +146,21 @@ int main(int argc, char *argv[]) {
     syslog(LOG_INFO, "Signal Handling set up complete.");
     printf("Signal handling set up.\n");
 
+    // Set the socket to non-blocking
+    int flags = fcntl(server_fd, F_GETFL, 0);
+    fcntl(server_fd, F_SETFL, flags | O_NONBLOCK);
+
     while (signal_received == 0) {
-        client_fd = accept(server_fd, &peer, &peersize);
-        if (client_fd < 0) {
+      client_fd = accept(server_fd, &peer, &peersize);
+      if (client_fd < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            // No connections pending
+            continue;
+      } else {
             perror("accept failed");
             continue;
-        }
+      }
+    }
 
         pthread_t thread_id;
         int *client_socket_ptr = malloc(sizeof(int)); 
