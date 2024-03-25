@@ -16,10 +16,22 @@
 #define DATA_FILE "/var/tmp/aesdsocketdata"
 
 volatile sig_atomic_t signal_received = 0; 
+int server_fd;
+
+void shutdown_server() {
+    // Cleanup 
+    close(server_fd);
+    remove(DATA_FILE); 
+    shutdown(server_fd, SHUT_RDWR);
+    close(server_fd);
+    closelog();
+    return 0;
+}
 
 void signal_handler(int sig) {
     signal_received = 1;
     syslog(LOG_INFO, "Caught signal, exiting");
+    shutdown_server();
 }
 
 // Function to handle a single client's communication
@@ -94,7 +106,7 @@ int main(int argc, char *argv[]) {
     memset(&peer, 0, peersize);
 
     // Socket setup
-    int server_fd, client_fd;
+    int client_fd;
     struct addrinfo *serverinfo;
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -176,12 +188,5 @@ int main(int argc, char *argv[]) {
             continue; 
         }
     }
-
-    // Cleanup 
-    close(server_fd);
-    remove(DATA_FILE); 
-    shutdown(server_fd, SHUT_RDWR);
-    close(server_fd);
-    closelog();
-    return 0;
+    shutdown_server();
 }
