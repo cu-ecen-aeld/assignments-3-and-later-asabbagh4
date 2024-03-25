@@ -12,6 +12,7 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <errno.h>
+#include <pthread.h>
 
 #define PORT "9000"
 #define DATA_FILE "/var/tmp/aesdsocketdata"
