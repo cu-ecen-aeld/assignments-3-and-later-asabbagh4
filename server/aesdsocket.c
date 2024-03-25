@@ -10,7 +10,8 @@
 #include <syslog.h>
 #include <fcntl.h>
 #include <netdb.h>
-#include <pthread.h> 
+#include <pthread.h>
+#include <errno.h>
 
 #define PORT "9000"
 #define DATA_FILE "/var/tmp/aesdsocketdata"
@@ -18,7 +19,7 @@
 volatile sig_atomic_t signal_received = 0; 
 int server_fd;
 
-void shutdown_server() {
+int shutdown_server() {
     // Cleanup 
     close(server_fd);
     remove(DATA_FILE); 
