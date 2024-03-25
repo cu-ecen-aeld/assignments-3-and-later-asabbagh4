@@ -12,7 +12,7 @@ endif
 all: clean aesdsocket.o aesdsocket
 
 aesdsocket: aesdsocket.o
-	$(COMPILE_COMMAND) aesdsocket.o -o aesdsocket
+	$(COMPILE_COMMAND) aesdsocket.o -o aesdsocket -lpthread
 
 aesdsocket.o: aesdsocket.c
 	$(COMPILE_COMMAND) -c aesdsocket.c -o aesdsocket.o -lpthread
