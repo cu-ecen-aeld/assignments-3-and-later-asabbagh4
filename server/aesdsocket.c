@@ -37,7 +37,7 @@ void *handle_client(void *client_socket) {
     char buffer[1000];
     int bytes_read;
 
-    while ((bytes_read = recv(client_fd, buffer, sizeof(buffer), 0)) > 0) { 
+    while (((bytes_read = recv(client_fd, buffer, sizeof(buffer), 0)) > 0) && (signal_received == 0)){ 
         write(filedata, buffer, bytes_read);
         if (strchr(buffer, '\n') != NULL) {
             break;
