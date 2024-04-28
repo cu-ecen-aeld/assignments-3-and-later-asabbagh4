@@ -1,12 +1,12 @@
 CC ?= gcc
 CFLAGS ?= -g -pthread
-LDFLAGS = ?= -lm
+LDFLAGS ?= -lm
 
 ifeq ($(CROSS_COMPILE),)
  COMPILE_COMMAND = $(CC)
  $(info Native compilation)
 else
- COMPILE_COMMAND = $(CROSS_COMPILE)$(CC)
+ COMPILE_COMMAND = aarch64-none-linux-gnu-$(CROSS_COMPILE)
  $(info Cross compilation: $(COMPILE_COMMAND))
 endif
 
