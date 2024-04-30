@@ -29,10 +29,36 @@
 struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct aesd_circular_buffer *buffer,
             size_t char_offset, size_t *entry_offset_byte_rtn )
 {
-    /**
-    * TODO: implement per description
-    */
-    return NULL;
+    uint8_t index;
+    struct aesd_buffer_entry *entry;
+    uint8_t total_bytes = 0;
+    AESD_CIRCULAR_BUFFER_FOREACH(entry,buffer,index) {
+        total_bytes += entry->size;
+    }
+    index = buffer->out_offs;
+    entry = &(buffer->entry[index]);
+
+    if( char_offset >= total_bytes ) {
+        return NULL;
+    }
+    if (char_offset == 0) {
+        *entry_offset_byte_rtn = 0;
+        entry = &(buffer->entry[index]);
+        return entry;
+    }
+    while( char_offset >= entry->size ) {
+        char_offset -= entry->size;
+        index = (index + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+        entry = &(buffer->entry[index]);
+    }
+    if (char_offset == entry->size) {
+        *entry_offset_byte_rtn = 0;
+    }
+    else {
+        *entry_offset_byte_rtn = char_offset;
+    }
+    return entry;
+
 }
 
 /**
@@ -44,9 +70,25 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
 */
 void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
 {
-    /**
-    * TODO: implement per description
-    */
+    if (buffer->full) {
+        buffer->entry[buffer->in_offs] = *add_entry;
+        buffer->in_offs = (buffer->in_offs + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+        if(buffer->out_offs + 1 == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) {
+            buffer->out_offs = 0;
+        }
+        else {
+	    buffer->out_offs++;
+	    }
+    }
+    else {
+        buffer->entry[buffer->in_offs] = *add_entry;
+        buffer->in_offs = (buffer->in_offs + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
+        if (buffer->in_offs == buffer->out_offs) {
+            buffer->full = true;
+            buffer->in_offs = 0;
+        }
+
+    }
 }
 
 /**
