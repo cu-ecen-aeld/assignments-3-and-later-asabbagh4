@@ -1,22 +1,14 @@
-CC = gcc
-CFLAGS ?= -g -pthread
-LDFLAGS ?= -lm
-
-ifeq ($(CROSS_COMPILE),)
- COMPILE_COMMAND = $(CC)
- $(info Native compilation)
-else
- COMPILE_COMMAND = aarch64-none-linux-gnu-$(CC)
- $(info Cross compilation: $(COMPILE_COMMAND))
-endif
+CC ?= $(CROSS_COMPILE)gcc
+CFLAGS ?= -g -Wall -Werror
+LDFLAGS ?= -pthread -lrt
 
 all: clean aesdsocket.o aesdsocket
 
 aesdsocket: aesdsocket.o
-	$(COMPILE_COMMAND) $(CFLAGS) aesdsocket.o -o aesdsocket $(LDFLAGS)
+	$(CC) aesdsocket.o -o aesdsocket $(LDFLAGS)
 
 aesdsocket.o: aesdsocket.c
-	$(COMPILE_COMMAND) $(CFLAGS) -c aesdsocket.c -o aesdsocket.o $(LDFLAGS)
+	$(CC) $(CFLAGS) -c aesdsocket.c -o aesdsocket.o $(LDFLAGS)
 
 clean:
 	rm -f aesdsocket aesdsocket.o
