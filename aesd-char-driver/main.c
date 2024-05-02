@@ -227,10 +227,12 @@ int aesd_init_module(void)
 
 void aesd_cleanup_module(void)
 {
+    uint8_t i = 0;
+    struct aesd_buffer_entry *entry = NULL;
     dev_t devno = MKDEV(aesd_major, aesd_minor);
 
     cdev_del(&aesd_device.cdev);
-    AESD_CIRCULAR_BUFFER_FOREACH(entry,&aesd_device.circular_buf,index) {
+    AESD_CIRCULAR_BUFFER_FOREACH(entry,&aesd_device.circular_buf,i) {
         if(entry->buffptr != NULL)
         {
             kfree(entry->buffptr);
