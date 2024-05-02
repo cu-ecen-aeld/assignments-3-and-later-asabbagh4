@@ -58,7 +58,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
     PDEBUG("read %zu bytes with offset %lld",count,*f_pos);
     if(filp == NULL || buf == NULL)
     {
-        PERROR("Received invalid arguments");
+        PDEBUG("Received invalid arguments");
         return -EINVAL;
     }
 
@@ -66,13 +66,13 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
 
     if(device == NULL)
     {
-        PERROR("No device found");
+        PDEBUG("No device found");
         return -ENODEV;
     }
 
     if(mutex_lock_interruptible(&device->mutex_lock))
     {
-        PERROR("Failed to lock mutex");
+        PDEBUG("Failed to lock mutex");
         return -ERESTARTSYS;
     }
 
@@ -80,7 +80,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
 
     if(buffer_entry == NULL)
     {
-        result = read_bytes;
+        retval = read_bytes;
         goto exit_read;
     }
 
@@ -95,7 +95,7 @@ ssize_t aesd_read(struct file *filp, char __user *buf, size_t count,
 
     if(retval != 0)
     {
-        PERROR("Failed to copy to user space");
+        PDEBUG("Failed to copy to user space");
         retval = -EFAULT;
         goto exit_read;
     }
@@ -118,7 +118,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 
     if(filp == NULL || buf == NULL)
     {
-        PERROR("Received invalid arguments");
+        PDEBUG("Received invalid arguments");
         return -EINVAL;
     }
     PDEBUG("write %zu bytes with offset %lld",count,*f_pos);
@@ -126,13 +126,13 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 
     if(device == NULL)
     {
-        PERROR("No device found");
+        PDEBUG("No device found");
         return -ENODEV;
     }
 
     if(mutex_lock_interruptible(&device->mutex_lock))
     {
-        PERROR("Failed to lock mutex");
+        PDEBUG("Failed to lock mutex");
         return -ERESTARTSYS;
     }
 
@@ -141,7 +141,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     device->buf_entry.buffptr = krealloc(device->buf_entry.buffptr, updated_entry_size, GFP_KERNEL);
     if(device->buf_entry.buffptr == NULL)
     {
-        PERROR("Failed to allocate %lu bytes of memory", updated_entry_size);
+        PDEBUG("Failed to allocate %lu bytes of memory", updated_entry_size);
         retval = -ENOMEM;
         goto exit_write;
     }
@@ -149,7 +149,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     retval = copy_from_user((void *)(device->buf_entry.buffptr + device->buf_entry.size), buf, count);
     if(retval != 0)
     {
-        PERROR("Failed to copy from user space");
+        PDEBUG("Failed to copy from user space");
         retval = -EFAULT;
         goto exit_write;
     }
