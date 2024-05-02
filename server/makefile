@@ -2,7 +2,7 @@ CC ?= $(CROSS_COMPILE)gcc
 CFLAGS ?= -g -Wall -Werror
 LDFLAGS ?= -pthread -lrt
 
-all: clean aesdsocket.o aesdsocket
+all: aesdsocket.o aesdsocket
 
 aesdsocket: aesdsocket.o
 	$(CC) aesdsocket.o -o aesdsocket $(LDFLAGS)
