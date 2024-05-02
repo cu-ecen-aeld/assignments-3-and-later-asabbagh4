@@ -197,13 +197,13 @@ int main(int argc, char *argv[])
         closelog();
         exit(EXIT_FAILURE);
     }
-
+/* commenting out timestamp for assignment 8
     pthread_t timestamp_thread;
     if (pthread_create(&timestamp_thread, NULL, timestamp_writer, NULL) < 0) {
         perror("Timestamp thread failed");
         exit(EXIT_FAILURE);
     }
-
+*/
     // loop to accept connections
     do {
         // now accept an incoming connection:
