@@ -33,5 +33,6 @@ struct aesd_dev
      struct cdev cdev;     /* Char device structure      */
 };
 
+loff_t aesd_llseek(struct file *filp, loff_t off, int whence);
 
 #endif /* AESD_CHAR_DRIVER_AESDCHAR_H_ */

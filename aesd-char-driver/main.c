@@ -178,6 +178,72 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
     return retval;
 }
 
+loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
+{
+    loff_t newpos;
+    printk(KERN_INFO "whence %d\n", whence);
+    switch(whence) {
+        case SEEK_SET: // Start from the beginning of the file
+            newpos = off;
+            break;
+
+        case SEEK_CUR: // Start from the current file position
+            newpos = filp->f_pos + off;
+            break;
+
+        case SEEK_END: // Start from the end of the file
+            newpos = (aesd_device.buf_entry.size) + off;
+            break;
+
+        default: // Invalid whence
+            return -EINVAL;
+    }
+
+    if (newpos < 0) return -EINVAL;
+    filp->f_pos = newpos;
+    return newpos;
+}
+
+long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    struct aesd_dev *dev = filp->private_data;
+    struct aesd_seekto seek;
+    int retval = 0;
+    loff_t newpos;
+
+    switch(cmd) {
+        case AESDCHAR_IOCSEEKTO:
+            // Copy the aesd_seekto structure from user space
+            if (copy_from_user(&seek, (struct aesd_seekto *)arg, sizeof(seek))) {
+                retval = -EFAULT;
+                break;
+            }
+
+            // Validate the command and offset
+            if (seek.write_cmd >= AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED ||
+                seek.write_cmd_offset >= dev->circular_buf.entry[seek.write_cmd].size) {
+                retval = -EINVAL;
+                break;
+            }
+
+            // Calculate the new file position
+            newpos = (char *)dev->circular_buf.entry[seek.write_cmd].buffptr - (char *)dev->circular_buf.entry[0].buffptr + seek.write_cmd_offset;
+
+            // Update the file position
+            if (newpos < 0 || newpos >= dev->circular_buf.entry[AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED-1].size) {
+                retval = -EINVAL;
+            } else {
+                filp->f_pos = newpos;
+            }
+            break;
+
+        default:
+            retval = -EINVAL;
+    }
+
+    return retval;
+}
+
 struct file_operations aesd_fops = {
     .owner =    THIS_MODULE,
     .read =     aesd_read,
@@ -247,72 +313,6 @@ void aesd_cleanup_module(void)
     unregister_chrdev_region(devno, 1);
 }
 
-loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
-{
-    loff_t newpos;
-    printk(KERN_INFO "whence %d\n", whence);
-    switch(whence) {
-        case SEEK_SET: // Start from the beginning of the file
-            newpos = off;
-            break;
-
-        case SEEK_CUR: // Start from the current file position
-            newpos = filp->f_pos + off;
-            break;
-
-        case SEEK_END: // Start from the end of the file
-            newpos = (aesd_device->buffer->total_size) + off;
-            break;
-
-        default: // Invalid whence
-            return -EINVAL;
-    }
-
-    if (newpos < 0) return -EINVAL;
-    filp->f_pos = newpos;
-    return newpos;
-}
-
-long aesd_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
-{
-    struct aesd_dev *dev = filp->private_data;
-    int command, offset;
-    int retval = 0;
-    loff_t newpos;
-
-    switch(cmd) {
-        case AESDCHAR_IOCSEEKTO:
-            // Copy the command and offset from user space
-            if (copy_from_user(&command, (int *)arg, sizeof(int)) ||
-                copy_from_user(&offset, (int *)(arg + sizeof(int)), sizeof(int))) {
-                retval = -EFAULT;
-                break;
-            }
-
-            // Validate the command and offset
-            if (command < 0 || command >= dev->circular_buf.count ||
-                offset < 0 || offset >= dev->circular_buf.entries[command].size) {
-                retval = -EINVAL;
-                break;
-            }
-
-            // Calculate the new file position
-            newpos = dev->circular_buf.entries[command].offset + offset;
-
-            // Update the file position
-            if (newpos < 0 || newpos >= (aesd_device->buffer->total_size)) {
-                retval = -EINVAL;
-            } else {
-                filp->f_pos = newpos;
-            }
-            break;
-
-        default:
-            retval = -EINVAL;
-    }
-
-    return retval;
-}
 
 module_init(aesd_init_module);
 module_exit(aesd_cleanup_module);

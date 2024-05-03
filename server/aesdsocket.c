@@ -13,7 +13,8 @@
 #include <netinet/in.h>
 #include <time.h>
 #include <arpa/inet.h>
-#include "aesd_ioctl.h"
+#include <sys/ioctl.h>
+#include "../aesd-char-driver/aesd_ioctl.h"
 
 #define PORT "9000"
 #define CONNECTIONS 20
