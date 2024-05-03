@@ -180,6 +180,7 @@ ssize_t aesd_write(struct file *filp, const char __user *buf, size_t count,
 
 loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
 {
+    struct aesd_dev *dev = filp->private_data;
     loff_t newpos;
     printk(KERN_INFO "whence %d\n", whence);
     switch(whence) {
@@ -192,7 +193,9 @@ loff_t aesd_llseek(struct file *filp, loff_t off, int whence)
             break;
 
         case SEEK_END: // Start from the end of the file
-            newpos = (aesd_device.buf_entry.size) + off;
+            newpos = (char *)dev->circular_buf.entry[AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED-1].buffptr - 
+                     (char *)dev->circular_buf.entry[0].buffptr + 
+                     dev->circular_buf.entry[AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED-1].size + off;
             break;
 
         default: // Invalid whence
