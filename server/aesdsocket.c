@@ -13,6 +13,7 @@
 #include <netinet/in.h>
 #include <time.h>
 #include <arpa/inet.h>
+#include "aesd-ioctl.h"
 
 #define PORT "9000"
 #define CONNECTIONS 20
@@ -113,26 +114,45 @@ void* connection_handler(void* socket_desc){
         syslog(LOG_ERR, "open failed for %s", DATA_FILE);
         close(new_fd);
         pthread_exit(NULL);
-    } else {
+    } 
+    else {
         while ((bytes_received = recv(new_fd, buffer, sizeof(buffer), 0)) > 0) {
             write(data_file_fd, buffer, bytes_received);
             // Check for newline character to consider the packet complete
-            if (memchr(buffer, '\n', bytes_received) != NULL) {
-                // Send the content of the file back to the client
-                int file_content_fd = open(DATA_FILE, O_RDONLY);
-                if (file_content_fd != -1) {
-                    while ((bytes_received = read(file_content_fd, buffer, sizeof(buffer))) > 0) {
-                        send(new_fd, buffer, bytes_received, 0);
-                    }
-                    close(file_content_fd);
+            struct aesd_seekto seek;
+            if (sscanf(buffer, "AESDCHAR_IOCSEEKTO:%u,%u", &seek.write_cmd, &seek.write_cmd_offset) == 2) {
+                // Send the X and Y values to your driver using the AESDCHAR_IOCSEEKTO ioctl command
+                if (ioctl(data_file_fd, AESDCHAR_IOCSEEKTO, &seek) == -1) {
+                    perror("ioctl");
+                    close(new_fd);
+                    pthread_exit(NULL);
                 }
-                lseek(data_file_fd, 0, SEEK_SET);  // Reset file offset for the next iteration
+
+                // Read the content of the device and send it back over the socket
+                lseek(data_file_fd, 0, SEEK_SET);  // Reset file offset for the next read
+                while ((bytes_received = read(data_file_fd, buffer, sizeof(buffer))) > 0) {
+                    send(new_fd, buffer, bytes_received, 0);
+                }
+            }
+            else {
+                write(data_file_fd, buffer, bytes_received);
+                if (memchr(buffer, '\n', bytes_received) != NULL) {
+                    // Send the content of the file back to the client
+                    int file_content_fd = open(DATA_FILE, O_RDONLY);
+                    if (file_content_fd != -1) {
+                        while ((bytes_received = read(file_content_fd, buffer, sizeof(buffer))) > 0) {
+                            send(new_fd, buffer, bytes_received, 0);
+                        }
+                        close(file_content_fd);
+                    }
+                    lseek(data_file_fd, 0, SEEK_SET);  // Reset file offset for the next iteration
+                }
             }
         }
         close(data_file_fd);
         //unlock mutex
         pthread_mutex_unlock(&file_mutex);
-        }
+    }
     // Close the connection
     close(new_fd);
     pthread_exit(NULL);
