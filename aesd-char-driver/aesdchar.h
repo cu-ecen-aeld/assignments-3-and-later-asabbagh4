@@ -27,10 +27,25 @@
 
 struct aesd_dev
 {
-     struct aesd_buffer_entry buf_entry;
-     struct aesd_circular_buffer circular_buf;
-     struct mutex mutex_lock;
-     struct cdev cdev;     /* Char device structure      */
+     struct mutex* mutex;
+    
+    /* Circular buffer */
+     struct aesd_circular_buffer* buffer;
+   
+    /* Partial buffer */    
+     struct aesd_buffer_entry* partial_entry;
+
+    /* Partial buffer written bool */
+     bool partial;
+
+    /* Seek information */
+     loff_t seekto_position;
+
+    /* Seek bool */
+     bool seek;
+
+    /* Char device structure */
+     struct cdev cdev;    
 };
 
 loff_t aesd_llseek(struct file *filp, loff_t off, int whence);

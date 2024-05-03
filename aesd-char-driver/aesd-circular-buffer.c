@@ -10,7 +10,6 @@
 
 #ifdef __KERNEL__
 #include <linux/string.h>
-#include "aesd-circular-buffer.h"
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/printk.h>
@@ -76,34 +75,40 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
 * Any necessary locking must be handled by the caller
 * Any memory referenced in @param add_entry must be allocated by and/or must have a lifetime managed by the caller.
 */
-char* aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
+void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry)
 {
-    if(buffer == NULL || add_entry == NULL)
-    {
-        return NULL;
-    }
-    char* ptr = NULL;
-    if (buffer->full) {
-        ptr = (char*)buffer->entry[buffer->out_offs].buffptr;
-        buffer->entry[buffer->in_offs] = *add_entry;
-        buffer->in_offs = (buffer->in_offs + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
-        if(buffer->out_offs + 1 == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) {
-            buffer->out_offs = 0;
+    if(buffer->full) {
+	// buffer is full - add to buffer at in_offs, advance both out_offs and in_offs
+	// subtract size we are removing
+	buffer->total_size -= buffer->entry[buffer->in_offs].size;
+	// add new size
+	buffer->total_size += add_entry->size;
+	buffer->entry[buffer->in_offs] = *add_entry;
+	if(buffer->in_offs + 1 == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) {
+	    // reached the end of the buffer again, start at the beginning
+	    buffer->in_offs = 0;
+	} else {
+            buffer->in_offs++;
         }
-        else {
+        if(buffer->out_offs + 1 == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) {
+            // reached the end of the buffer again, start at the beginning
+            buffer->out_offs = 0;
+        } else {
 	    buffer->out_offs++;
-	    }
+	}
     }
     else {
-        buffer->entry[buffer->in_offs] = *add_entry;
-        buffer->in_offs = (buffer->in_offs + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
-        if (buffer->in_offs == buffer->out_offs) {
-            buffer->full = true;
-            buffer->in_offs = 0;
-        }
-
+	// buffer is not full - add to buffer, increment in_offs
+	buffer->total_size += add_entry->size;
+	buffer->entry[buffer->in_offs] = *add_entry;
+        if(buffer->in_offs + 1 == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED) {
+            // the buffer is now full
+	    buffer->in_offs = 0;
+	    buffer->full = true;
+	} else {
+	    buffer->in_offs++;
+	}
     }
-    return ptr;
 }
 
 /**
@@ -112,4 +117,38 @@ char* aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const 
 void aesd_circular_buffer_init(struct aesd_circular_buffer *buffer)
 {
     memset(buffer,0,sizeof(struct aesd_circular_buffer));
+}
+
+extern size_t aesd_circular_buffer_read_helper(struct aesd_circular_buffer *buffer,
+	      size_t index1, size_t index2,
+	      char* data, size_t count, size_t *byte_offset)
+{
+    uint i = 0;	
+    uint j = 0;
+    uint k = *byte_offset;
+    uint end = 0;
+    size_t read_count = 0;
+    char* tmp = kmalloc(count, GFP_KERNEL);
+    for(i = index1; i < index2; i++) {
+        if(buffer->entry[i].size == 0 || (count - read_count) == 0) {
+            // there is no more data, break loop
+            break;
+        }
+        if(read_count + buffer->entry[i].size < count) {
+            // if we have room for the entire entry
+    	    end = buffer->entry[i].size;
+	} else {
+	    end = count - read_count + *byte_offset;
+	}
+        for(k; k < end; k++) {
+	    tmp[j] = buffer->entry[i].buffptr[k];
+            data[read_count + j] = buffer->entry[i].buffptr[k];
+	    j++;
+        }
+
+        read_count += j;
+	j=0;
+	k=0;
+    }
+    return read_count;
 }

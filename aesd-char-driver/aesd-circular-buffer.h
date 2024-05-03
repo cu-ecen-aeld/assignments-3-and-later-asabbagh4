@@ -49,14 +49,19 @@ struct aesd_circular_buffer
      * set to true when the buffer entry structure is full
      */
     bool full;
+
+    ssize_t total_size;
 };
 
 extern struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct aesd_circular_buffer *buffer,
             size_t char_offset, size_t *entry_offset_byte_rtn );
 
-extern char* aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry);
+void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const struct aesd_buffer_entry *add_entry);
 
 extern void aesd_circular_buffer_init(struct aesd_circular_buffer *buffer);
+
+extern size_t aesd_circular_buffer_read_helper(struct aesd_circular_buffer *buffer, size_t index1, size_t index2,
+	    char* data, size_t count, size_t *byte_offset);
 
 /**
  * Create a for loop to iterate over each member of the circular buffer.
