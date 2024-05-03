@@ -118,7 +118,6 @@ void* connection_handler(void* socket_desc){
     } 
     else {
         while ((bytes_received = recv(new_fd, buffer, sizeof(buffer), 0)) > 0) {
-            write(data_file_fd, buffer, bytes_received);
             // Check for newline character to consider the packet complete
             struct aesd_seekto seek;
             if (sscanf(buffer, "AESDCHAR_IOCSEEKTO:%u,%u", &seek.write_cmd, &seek.write_cmd_offset) == 2) {
